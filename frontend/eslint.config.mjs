@@ -1,4 +1,5 @@
-import { nextCoreWebVitalsConfig } from "eslint-config-next";
+import pkg from "eslint-config-next";
+const { nextCoreWebVitalsConfig } = pkg;
 
 const eslintConfig = [
   ...nextCoreWebVitalsConfig,
