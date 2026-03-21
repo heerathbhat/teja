@@ -7,7 +7,8 @@ const initialState = {
   error: null,
 };
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth`;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = `${BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`}/auth`;
 
 export const login = createAsyncThunk('auth/login', async (userData, { rejectWithValue }) => {
   try {
