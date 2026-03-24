@@ -26,7 +26,11 @@ router.post('/', protect, admin, upload.array('attachments', 5), async (req, res
       attachments
     });
 
-    res.status(201).json(task);
+    const populatedTask = await Task.findById(task._id)
+      .populate('assignedTo', 'name email')
+      .populate('createdBy', 'name email');
+
+    res.status(201).json(populatedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -76,7 +80,10 @@ router.patch('/:id', protect, async (req, res) => {
     }
 
     const updatedTask = await task.save();
-    res.json(updatedTask);
+    const populatedTask = await Task.findById(updatedTask._id)
+      .populate('assignedTo', 'name email')
+      .populate('createdBy', 'name email');
+    res.json(populatedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
