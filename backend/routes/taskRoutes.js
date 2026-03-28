@@ -3,6 +3,8 @@ const router = express.Router();
 const Task = require('../models/Task');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../config/cloudinary');
+const Notification = require('../models/Notification');
+const { getIO } = require('../utils/socket');
 
 // @desc    Create a new task
 // @route   POST /api/tasks
@@ -29,6 +31,23 @@ router.post('/', protect, admin, upload.array('attachments', 5), async (req, res
     const populatedTask = await Task.findById(task._id)
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name email');
+
+    // Create persistent notification
+    await Notification.create({
+      recipient: assignedTo,
+      sender: req.user._id,
+      taskId: task._id,
+      message: `New task assigned: ${title}`,
+      type: 'TASK_ASSIGNED'
+    });
+
+    // Real-time socket alert
+    const io = getIO();
+    io.to(assignedTo.toString()).emit('notification', {
+      type: 'TASK_ASSIGNED',
+      message: `New task assigned: ${title}`,
+      taskId: task._id
+    });
 
     res.status(201).json(populatedTask);
   } catch (error) {
@@ -83,6 +102,26 @@ router.patch('/:id', protect, async (req, res) => {
     const populatedTask = await Task.findById(updatedTask._id)
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name email');
+
+    // Notify relevant party
+    const isInternUpdating = req.user.role === 'intern';
+    const recipientId = isInternUpdating ? populatedTask.createdBy._id : populatedTask.assignedTo._id;
+    
+    await Notification.create({
+      recipient: recipientId,
+      sender: req.user._id,
+      taskId: populatedTask._id,
+      message: `Task "${populatedTask.title}" status updated to ${populatedTask.status}`,
+      type: 'STATUS_UPDATED'
+    });
+
+    const io = getIO();
+    io.to(recipientId.toString()).emit('notification', {
+      type: 'STATUS_UPDATED',
+      message: `Task "${populatedTask.title}" status updated to ${populatedTask.status}`,
+      taskId: populatedTask._id
+    });
+
     res.json(populatedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });

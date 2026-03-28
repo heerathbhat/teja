@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect, admin } = require('../middleware/authMiddleware');
+const Notification = require('../models/Notification');
 const router = express.Router();
 
 const generateToken = (id) => {
@@ -78,6 +79,51 @@ router.get('/users', protect, admin, async (req, res) => {
   try {
     const users = await User.find({}).select('-password');
     res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Get user notifications
+// @route   GET /api/auth/notifications
+// @access  Private
+router.get('/notifications', protect, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ recipient: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Mark notification as read
+// @route   PATCH /api/auth/notifications/:id/read
+// @access  Private
+router.patch('/notifications/:id/read', protect, async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification) return res.status(404).json({ message: 'Notification not found' });
+    
+    notification.isRead = true;
+    await notification.save();
+    res.json(notification);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Mark all notifications as read
+// @route   PATCH /api/auth/notifications/read-all
+// @access  Private
+router.patch('/notifications/read-all', protect, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: req.user._id, isRead: false },
+      { isRead: true }
+    );
+    res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
