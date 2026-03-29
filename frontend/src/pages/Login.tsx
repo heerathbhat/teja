@@ -167,7 +167,7 @@ const Login: React.FC = () => {
                   useOneTap
                   theme="filled_blue"
                   shape="pill"
-                  width="100%"
+                  width="380"
                 />
               </div>
 
