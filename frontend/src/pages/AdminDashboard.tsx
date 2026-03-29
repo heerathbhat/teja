@@ -1,107 +1,58 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Link } from 'react-router-dom';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Link, Navigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, LogOut, FileText, CheckCircle, Clock, Users, LayoutDashboard } from 'lucide-react';
-import solvimateLogo from '@/assets/solvimate-logo.png';
+import { 
+  LogOut, 
+  Activity, 
+  DollarSign, 
+  Zap, 
+  AlertCircle, 
+  Users, 
+  BarChart3, 
+  Search,
+  CheckCircle2,
+  XCircle,
+  Clock
+} from 'lucide-react';
+import tejaLogo from '@/assets/teja-logo.png';
 import ParticleField from '@/components/ParticleField';
-import NotificationBell from '@/components/NotificationBell';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell
+} from 'recharts';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks'],
+  // Redirect if not admin
+  if (user && user.role !== 'admin') {
+    return <Navigate to="/user" />;
+  }
+
+  // Fetch Stats
+  const { data: stats, isLoading, isError } = useQuery({
+    queryKey: ['adminStats'],
     queryFn: async () => {
-      const { data } = await api.get('/tasks');
+      const { data } = await api.get('/admin/stats');
       return data;
     },
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
-
-  // Fetch interns
-  const { data: interns = [] } = useQuery({
-    queryKey: ['interns'],
-    queryFn: async () => {
-      const { data } = await api.get('/auth/users');
-      return data.filter((u: any) => u.role === 'intern');
-    },
-  });
-
-  // Create task mutation
-  const createTaskMutation = useMutation({
-    mutationFn: async (newTask: any) => {
-      const formData = new FormData();
-      formData.append('title', newTask.title);
-      formData.append('description', newTask.description);
-      formData.append('assignedTo', newTask.assignedTo);
-      formData.append('dueDate', newTask.dueDate);
-      if (newTask.files) {
-        Array.from(newTask.files as FileList).forEach(file => {
-          formData.append('attachments', file);
-        });
-      }
-      const { data } = await api.post('/tasks', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast({ title: 'Task created successfully' });
-      setIsDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error creating task',
-        description: error.response?.data?.message || 'Something went wrong',
-      });
-    }
-  });
-
-  const handleCreateTask = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const taskData = {
-      title: formData.get('title'),
-      description: formData.get('description'),
-      assignedTo: formData.get('assignedTo'),
-      dueDate: formData.get('dueDate'),
-      files: (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement).files,
-    };
-    createTaskMutation.mutate(taskData);
-  };
-
-  const stats = {
-    total: tasks.length,
-    pending: tasks.filter((t: any) => t.status === 'pending' || t.status === 'in-progress').length,
-    completed: tasks.filter((t: any) => t.status === 'completed').length,
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -112,6 +63,38 @@ const AdminDashboard: React.FC = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-muted-foreground animate-pulse">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-96 text-center p-8 glass border-destructive/20">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Failed to load analytics</h2>
+          <p className="text-muted-foreground mb-6">There was an error connecting to the admin service.</p>
+          <Button onClick={() => window.location.reload()} variant="outline">Try Again</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const { summary, dailyUsage, endpointUsage, recentLogs } = stats;
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
@@ -125,11 +108,11 @@ const AdminDashboard: React.FC = () => {
       >
         <div className="container mx-auto px-8 py-2 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src={solvimateLogo} alt="Solvimate" className="h-12 w-auto" />
+            <img src={tejaLogo} alt="Teja" className="h-10 w-auto" />
+            <span className="font-bold text-xl tracking-tight hidden md:block">Analytics <span className="text-primary italic">Beta</span></span>
           </Link>
           <div className="flex items-center gap-6">
-            <NotificationBell />
-            <span className="text-sm font-medium text-muted-foreground md:block hidden">Admin: <span className="text-foreground">{user?.name} ({user?.email})</span></span>
+            <span className="text-sm font-medium text-muted-foreground md:block hidden">System Admin: <span className="text-foreground">{user?.name}</span></span>
             <Button onClick={logout} variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2">
               <LogOut size={18} /> Logout
             </Button>
@@ -147,198 +130,194 @@ const AdminDashboard: React.FC = () => {
           {/* Dashboard Header */}
           <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-                <LayoutDashboard className="text-primary" /> Admin <span className="gradient-text">Dashboard</span>
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <Activity size={16} />
+                <span className="text-xs font-bold uppercase tracking-widest">Global Monitoring</span>
+              </div>
+              <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
+                Model <span className="gradient-text">Performance</span> Dashboard
               </h1>
-              <p className="text-muted-foreground mt-2">Oversee tasks, interns, and AI system performance.</p>
             </div>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-accent text-white rounded-xl px-8 py-6 h-auto text-lg font-bold shadow-lg shadow-primary/20 gap-3 group transition-all">
-                  <Plus className="group-hover:rotate-90 transition-transform" /> Create New Task
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="glass backdrop-blur-2xl border-border/50 rounded-3xl max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold">New Task Detail</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateTask} className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Task Title</Label>
-                    <Input id="title" name="title" className="bg-white/50" required placeholder="Project Alpha" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Requirement Description</Label>
-                    <Input id="description" name="description" className="bg-white/50" required placeholder="Dataset labeling for NLP..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assignedTo">Assign To Intern</Label>
-                    <Select name="assignedTo" required>
-                      <SelectTrigger className="bg-white/50">
-                        <SelectValue placeholder="Select an intern" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        {interns.map((intern: any) => (
-                          <SelectItem key={intern._id} value={intern._id}>{intern.name} ({intern.email})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDate">Deadline</Label>
-                    <Input id="dueDate" name="dueDate" type="date" className="bg-white/50" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="files">Resource Files</Label>
-                    <Input id="files" name="files" type="file" multiple className="bg-white/50 cursor-pointer" />
-                  </div>
-                  <Button type="submit" disabled={createTaskMutation.isPending} className="w-full bg-primary py-6 text-lg font-bold rounded-xl mt-4">
-                    {createTaskMutation.isPending ? 'Publishing Task...' : 'Launch Task'}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
           </motion.div>
 
-          {/* Stats Cards */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="glass border-none rounded-3xl shadow-xl overflow-hidden group">
-              <div className="absolute inset-x-0 bottom-0 h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-              <CardHeader className="pb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active Workspace</p>
-                <CardTitle className="text-4xl font-black text-foreground">{stats.total} <span className="text-lg font-medium text-muted-foreground">Tasks</span></CardTitle>
+          {/* Metric Overview Cards */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="glass border-none shadow-soft overflow-hidden group">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Requests</CardTitle>
+                <Activity className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2 text-primary text-sm font-bold">
-                  <FileText size={16} /> Total volume of work
+                <div className="text-3xl font-bold">{summary.totalRequests.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">AI usage volume</p>
+              </CardContent>
+            </Card>
+
+            <Card className="glass border-none shadow-soft overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Estimated Cost</CardTitle>
+                <DollarSign className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">${summary.totalCost.toFixed(4)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Based on {summary.totalTokens.toLocaleString()} tokens</p>
+              </CardContent>
+            </Card>
+
+            <Card className="glass border-none shadow-soft overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Success Rate</CardTitle>
+                <Zap className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{summary.successRate.toFixed(1)}%</div>
+                <div className="w-full bg-secondary h-1.5 rounded-full mt-3 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${summary.successRate}%` }}
+                    className="bg-primary h-full"
+                  />
                 </div>
               </CardContent>
             </Card>
-            
-            <Card className="glass border-none rounded-3xl shadow-xl overflow-hidden group">
-              <div className="absolute inset-x-0 bottom-0 h-1 bg-yellow-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-              <CardHeader className="pb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">In Progress</p>
-                <CardTitle className="text-4xl font-black text-foreground">{stats.pending} <span className="text-lg font-medium text-muted-foreground">Pending</span></CardTitle>
+
+            <Card className="glass border-none shadow-soft overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Avg Latency</CardTitle>
+                <Clock className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2 text-yellow-600 text-sm font-bold">
-                  <Clock size={16} /> Waiting for completion
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="glass border-none rounded-3xl shadow-xl overflow-hidden group">
-              <div className="absolute inset-x-0 bottom-0 h-1 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-              <CardHeader className="pb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Efficiency Metric</p>
-                <CardTitle className="text-4xl font-black text-foreground">{stats.completed} <span className="text-lg font-medium text-muted-foreground">Delivered</span></CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-accent text-sm font-bold">
-                  <CheckCircle size={16} /> Successfully processed
-                </div>
+                <div className="text-3xl font-bold">{summary.avgLatency.toFixed(0)} ms</div>
+                <p className="text-xs text-muted-foreground mt-1">Response time per request</p>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Main Grid: Tasks & Interns */}
-          <div className="grid lg:grid-cols-4 gap-8">
-            {/* Task Table */}
-            <motion.section variants={itemVariants} className="lg:col-span-3 space-y-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold">Recent Output Pipeline</h2>
-              </div>
-              <Card className="glass border-none rounded-3xl shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-primary/10 text-primary text-xs uppercase font-extrabold tracking-widest">
-                      <tr>
-                        <th className="px-6 py-5">Objective</th>
-                        <th className="px-6 py-5">Personnel</th>
-                        <th className="px-6 py-5">System Status</th>
-                        <th className="px-6 py-5">Files</th>
-                        <th className="px-6 py-5">Timeline</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {tasks.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-16 text-center">
-                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                              <FileText size={48} className="opacity-20" />
-                              <p className="text-lg font-medium italic">Pipeline Empty</p>
-                              <p>Initiate a new task to begin tracking.</p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        tasks.map((task: any) => (
-                          <tr key={task._id} className="hover:bg-primary/5 transition-colors group">
-                            <td className="px-6 py-5">
-                              <div className="font-bold text-foreground group-hover:text-primary transition-colors">{task.title}</div>
-                              <div className="text-xs text-muted-foreground line-clamp-1 truncate max-w-xs">{task.description}</div>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-                                  {task.assignedTo?.name?.charAt(0) || '?'}
-                                </div>
-                                <span className="font-medium text-sm">{task.assignedTo?.name || 'Unassigned'} {task.assignedTo?.email ? `(${task.assignedTo.email})` : ''}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5">
-                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                task.status === 'completed' ? 'bg-accent/20 text-accent border border-accent/20' : 
-                                task.status === 'in-progress' ? 'bg-blue-500/20 text-blue-600 border border-blue-500/20' : 
-                                'bg-yellow-500/20 text-yellow-600 border border-yellow-500/20'
-                              }`}>
-                                {task.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                                <FileText size={14} /> {task.attachments?.length || 0}
-                              </div>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="text-sm font-bold text-foreground">{new Date(task.dueDate).toLocaleDateString()}</div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <motion.div variants={itemVariants}>
+              <Card className="glass border-none shadow-soft h-full">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <BarChart3 size={20} className="text-primary" />
+                    Request Volume (L7D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dailyUsage}>
+                      <defs>
+                        <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="_id" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      />
+                      <Area type="monotone" dataKey="requests" stroke="#10b981" fillOpacity={1} fill="url(#colorRequests)" strokeWidth={3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
               </Card>
-            </motion.section>
+            </motion.div>
 
-            {/* Side: Interns */}
-            <motion.section variants={itemVariants} className="space-y-4">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><Users size={20} className="text-primary" /> Personnel</h2>
-              <div className="space-y-4">
-                {interns.length === 0 ? (
-                  <p className="text-muted-foreground italic text-sm">No active interns detected.</p>
-                ) : (
-                  interns.map((intern: any) => (
-                    <motion.div 
-                      key={intern._id}
-                      whileHover={{ x: 5 }}
-                      className="glass border-none rounded-2xl p-4 flex items-center space-x-4 shadow-md transition-all hover:bg-white/90"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-hero-gradient flex items-center justify-center text-white font-black text-xl shadow-lg">
-                        {intern.name.charAt(0)}
-                      </div>
-                      <div className="overflow-hidden">
-                        <h3 className="font-extrabold text-foreground truncate">{intern.name} ({intern.email})</h3>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.section>
+            <motion.div variants={itemVariants}>
+              <Card className="glass border-none shadow-soft h-full">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <Users size={20} className="text-primary" />
+                    Tool Usage Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={endpointUsage}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="_id" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      />
+                      <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                        {endpointUsage.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
+
+          {/* Recent Logs Table */}
+          <motion.div variants={itemVariants}>
+            <Card className="glass border-none shadow-soft overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-4">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Search size={20} className="text-primary" />
+                  Model Interaction Logs
+                </CardTitle>
+                <div className="text-xs text-muted-foreground">Showing last 20 requests</div>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-secondary/50 text-xs font-bold text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-6 py-4">User</th>
+                      <th className="px-6 py-4">Tool</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Latency</th>
+                      <th className="px-6 py-4">Cost</th>
+                      <th className="px-6 py-4">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {recentLogs.map((log: any) => (
+                      <tr key={log._id} className="hover:bg-secondary/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-sm">{log.user?.name || 'Unknown'}</div>
+                          <div className="text-xs text-muted-foreground">{log.user?.email}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">
+                            {log.endpoint}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {log.status === 'success' ? (
+                            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <CheckCircle2 size={14} /> OK
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
+                              <XCircle size={14} /> ERR
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs">{log.latency?.toLocaleString() || 0} ms</td>
+                        <td className="px-6 py-4 font-mono text-xs">${log.cost?.toFixed(5) || '0.00000'}</td>
+                        <td className="px-6 py-4 text-xs text-muted-foreground">
+                          {new Date(log.createdAt).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                    {recentLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground italic">
+                          No interaction logs found yet. Start chatting to see data!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
       </main>
     </div>

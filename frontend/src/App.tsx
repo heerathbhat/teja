@@ -9,7 +9,7 @@ import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
-import InternDashboard from "./pages/InternDashboard.tsx";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
@@ -19,7 +19,7 @@ const queryClient = new QueryClient();
 const HomeRedirect = () => {
   const { user } = useAuth();
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/intern'} replace />;
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace />;
   }
   return <Index />;
 };
@@ -43,9 +43,9 @@ const App = () => (
               <Route path="/admin" element={<AdminDashboard />} />
             </Route>
 
-            {/* Intern Routes */}
+            {/* User Routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/intern" element={<InternDashboard />} />
+              <Route path="/user" element={<UserDashboard />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

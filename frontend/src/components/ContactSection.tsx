@@ -19,7 +19,7 @@ const ContactSection = () => {
             Let's Build <span className="gradient-text">Together</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Have a project in mind? Reach out and let's explore how Solvimate can accelerate your AI pipeline.
+            Have a project in mind? Reach out and let's explore how Teja can accelerate your AI pipeline.
           </p>
         </motion.div>
 
@@ -51,7 +51,7 @@ const ContactSection = () => {
             className="space-y-8"
           >
             {[
-              { icon: Mail, label: "Email Us", value: "contact@solvimate.com" },
+              { icon: Mail, label: "Email Us", value: "contact@teja.com" },
               { icon: Phone, label: "Call Us", value: "+1 (555) 123-4567" },
               { icon: MapPin, label: "Visit Us", value: "San Francisco, CA 94105" },
             ].map((item) => (

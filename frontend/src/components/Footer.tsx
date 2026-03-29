@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import solvimateLogo from "@/assets/solvimate-logo.png";
+import tejaLogo from "@/assets/teja-logo.png";
 
 const Footer = () => (
   <motion.footer
@@ -10,11 +10,11 @@ const Footer = () => (
   >
     <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
       <div className="flex items-center gap-2">
-        <img src={solvimateLogo} alt="Solvimate logo" className="h-20 w-15 object-contain" />
-        <span className="text-sm font-semibold text-foreground">Solvimate</span>
+        <img src={tejaLogo} alt="Teja logo" className="h-10 w-auto object-contain" />
+        <span className="text-sm font-semibold text-foreground">Teja</span>
       </div>
       <p className="text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Solvimate. All rights reserved.
+        © {new Date().getFullYear()} Teja. All rights reserved.
       </p>
       <div className="flex gap-6 text-sm text-muted-foreground">
         <a href="#" className="hover:text-foreground transition-colors">Privacy</a>

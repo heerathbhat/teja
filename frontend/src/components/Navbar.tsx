@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import solvimateLogo from "@/assets/solvimate-logo.png";
+import tejaLogo from "@/assets/teja-logo.png";
 
 const navLinks = [
   { label: "Home", href: "#home" },
@@ -24,7 +24,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex items-center justify-between px-8 py-1">
         <Link to="/" className="flex items-center gap-2">
-          <img src={solvimateLogo} alt="Solvimate logo" className="h-16 w-auto object-contain" />
+          <img src={tejaLogo} alt="Teja logo" className="h-16 w-auto object-contain" />
         </Link>
 
         <div className="hidden md:flex items-center gap-6">

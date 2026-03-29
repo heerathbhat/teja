@@ -159,27 +159,19 @@ const HeroSection = () => {
               AI-Powered Data Solutions
             </motion.div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
               <motion.span
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="block text-foreground"
               >
-                Pre-Labeled Datasets &
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="block gradient-text"
-              >
                 Custom AI Solutions
               </motion.span>
               <motion.span
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.5 }}
                 className="block text-foreground text-3xl md:text-4xl lg:text-5xl"
               >
                 for Robust Development
@@ -193,7 +185,7 @@ const HeroSection = () => {
               className="text-lg text-muted-foreground max-w-lg mb-8"
             >
               Translation, Transcription & Voiceover — powered by cutting-edge AI.
-              Streamline your media tasks with Solvimate's intelligent workflow.
+              Streamline your media tasks with Teja's intelligent workflow.
             </motion.p>
 
             <motion.div

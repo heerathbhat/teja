@@ -4,10 +4,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
+const { initBigQuery } = require('./utils/bigqueryLogger');
 
 dotenv.config();
 
 connectDB();
+initBigQuery();
 
 const app = express();
 
@@ -35,7 +37,10 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/files', require('./routes/fileRoutes'));
 
 app.get('/', (req, res) => {
 

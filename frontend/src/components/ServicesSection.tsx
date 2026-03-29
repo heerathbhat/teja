@@ -17,11 +17,7 @@ const services = [
     title: "Voiceover",
     description: "Natural-sounding AI voiceovers using Google TTS & ElevenLabs for professional media production.",
   },
-  {
-    icon: Database,
-    title: "Pre-Labeled Datasets",
-    description: "High-quality annotated datasets ready for training your ML models — skip the labeling grind.",
-  },
+
   {
     icon: Brain,
     title: "Custom AI Models",

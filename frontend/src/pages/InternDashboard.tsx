@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, CheckCircle, Clock, AlertCircle, Sparkles, LayoutDashboard } from 'lucide-react';
-import solvimateLogo from '@/assets/solvimate-logo.png';
+import tejaLogo from '@/assets/teja-logo.png';
 import ParticleField from '@/components/ParticleField';
 import NotificationBell from '@/components/NotificationBell';
 
@@ -70,7 +70,7 @@ const InternDashboard: React.FC = () => {
       >
         <div className="container mx-auto px-8 py-2 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src={solvimateLogo} alt="Solvimate" className="h-12 w-auto" />
+            <img src={tejaLogo} alt="Teja" className="h-12 w-auto" />
           </Link>
           <div className="flex items-center gap-6">
             <NotificationBell />

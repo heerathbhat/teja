@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import solvimateLogo from '@/assets/solvimate-logo.png';
+import tejaLogo from '@/assets/teja-logo.png';
 import ParticleField from '@/components/ParticleField';
 
 const loginSchema = z.object({
@@ -34,7 +34,7 @@ const Login: React.FC = () => {
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
-      navigate(user.role === 'admin' ? '/admin' : '/intern');
+      navigate(user.role === 'admin' ? '/admin' : '/user');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -70,7 +70,7 @@ const Login: React.FC = () => {
       >
         <div className="container mx-auto px-8 py-2 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src={solvimateLogo} alt="Solvimate" className="h-12 w-auto" />
+            <img src={tejaLogo} alt="Teja" className="h-12 w-auto" />
           </Link>
           <nav className="flex items-center gap-6">
             <Link to="/signup">
@@ -86,7 +86,9 @@ const Login: React.FC = () => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="flex flex-col items-center gap-4"
         >
+          <img src={tejaLogo} alt="Teja" className="h-24 w-auto mb-4 drop-shadow-2xl" />
           <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl glass backdrop-blur-xl">
             <CardHeader className="pt-10 pb-6 text-center">
               <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">

@@ -1,23 +1,48 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const { bucket } = require('../config/gcp');
 const Task = require('../models/Task');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { upload } = require('../config/cloudinary');
 const Notification = require('../models/Notification');
 const { getIO } = require('../utils/socket');
 
-// @desc    Create a new task
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
+
+// @desc    Create a new task with GCS attachments
 // @route   POST /api/tasks
 // @access  Private/Admin
 router.post('/', protect, admin, upload.array('attachments', 5), async (req, res) => {
   const { title, description, assignedTo, dueDate } = req.body;
 
   try {
-    const attachments = req.files.map(file => ({
-      url: file.path,
-      public_id: file.filename,
-      fileName: file.originalname
-    }));
+    const attachmentPromises = (req.files || []).map(file => {
+      return new Promise((resolve, reject) => {
+        const blob = bucket.file(`task_attachments/${Date.now()}_${file.originalname}`);
+        const blobStream = blob.createWriteStream({
+          resumable: false,
+          gzip: true,
+          metadata: { contentType: file.mimetype }
+        });
+
+        blobStream.on('error', (err) => reject(err));
+        blobStream.on('finish', () => {
+          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+          resolve({
+            url: publicUrl,
+            public_id: blob.name,
+            fileName: file.originalname
+          });
+        });
+
+        blobStream.end(file.buffer);
+      });
+    });
+
+    const attachments = await Promise.all(attachmentPromises);
 
     const task = await Task.create({
       title,

@@ -31,7 +31,7 @@ const VideoShowcase = () => {
             Watch Our <span className="gradient-text">AI Demo</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Experience Solvimate's translation and transcription capabilities in this animated showcase.
+            //             Translation, Transcription & Voiceover — powered by cutting-edge AI. Streamline your media pipeline with Teja.
           </p>
         </motion.div>
 
@@ -45,7 +45,7 @@ const VideoShowcase = () => {
         >
           <video
             ref={videoRef}
-            src="/solvimate-promo.mp4"
+            src="/teja-promo.mp4"
             className="w-full aspect-video bg-background object-cover"
             loop
             playsInline

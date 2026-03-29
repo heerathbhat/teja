@@ -9,15 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import solvimateLogo from '@/assets/solvimate-logo.png';
+import tejaLogo from '@/assets/teja-logo.png';
 import ParticleField from '@/components/ParticleField';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Form,
   FormControl,
@@ -30,7 +24,6 @@ const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['admin', 'intern']),
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -46,18 +39,17 @@ const Signup: React.FC = () => {
       name: '',
       email: '',
       password: '',
-      role: 'intern',
     },
   });
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
-      const user = await signup(values);
+      const user = await signup({ ...values, role: 'user' });
       toast({
         title: 'Account created!',
         description: 'You have successfully registered.',
       });
-      navigate(user.role === 'admin' ? '/admin' : '/intern');
+      navigate(user.role === 'admin' ? '/admin' : '/user');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -93,7 +85,7 @@ const Signup: React.FC = () => {
       >
         <div className="container mx-auto px-8 py-2 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src={solvimateLogo} alt="Solvimate" className="h-12 w-auto" />
+            <img src={tejaLogo} alt="Teja" className="h-12 w-auto" />
           </Link>
           <nav className="flex items-center gap-6">
             <Link to="/login">
@@ -109,11 +101,13 @@ const Signup: React.FC = () => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="flex flex-col items-center gap-4"
         >
+          <img src={tejaLogo} alt="Teja" className="h-24 w-auto mb-4 drop-shadow-2xl" />
           <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl glass backdrop-blur-xl">
             <CardHeader className="pt-10 pb-6 text-center">
               <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">
-                Join <span className="gradient-text">Solvimate</span>
+                Join <span className="gradient-text">Teja</span>
               </CardTitle>
               <p className="text-muted-foreground mt-2">Start your AI development journey</p>
             </CardHeader>
@@ -170,26 +164,7 @@ const Signup: React.FC = () => {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-white/50 border-border/50 focus-visible:ring-primary py-6 text-lg rounded-xl">
-                              <SelectValue placeholder="Select Role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white">
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="intern">Intern</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                   <Button 
                     type="submit" 
                     disabled={form.formState.isSubmitting}
