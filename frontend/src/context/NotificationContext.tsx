@@ -22,7 +22,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://teja-0hdq.onrender.com/api';
 const SOCKET_URL = API_URL.replace('/api', '');
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

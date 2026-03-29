@@ -1,12 +1,10 @@
+require('dotenv').config();
 const express = require('express');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { initBigQuery } = require('./utils/bigqueryLogger');
-
-dotenv.config();
 
 connectDB();
 initBigQuery();
