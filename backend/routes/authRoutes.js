@@ -3,7 +3,10 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect, admin } = require('../middleware/authMiddleware');
 const Notification = require('../models/Notification');
+const { OAuth2Client } = require('google-auth-library');
+
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -126,6 +129,50 @@ router.patch('/notifications/read-all', protect, async (req, res) => {
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Auth with Google
+// @route   POST /api/auth/google
+// @access  Public
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId, picture: avatar } = payload;
+    
+    let user = await User.findOne({ email });
+    
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.avatar = avatar;
+        await user.save();
+      }
+    } else {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        avatar,
+        role: 'user'
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id)
+    });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid Google token' });
   }
 });
 

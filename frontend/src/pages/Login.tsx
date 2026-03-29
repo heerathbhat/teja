@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
@@ -40,6 +41,25 @@ const Login: React.FC = () => {
         variant: 'destructive',
         title: 'Login failed',
         description: error.response?.data?.message || 'Invalid email or password',
+      });
+    }
+  };
+
+  const handleGoogleSuccess = async (response: any) => {
+    try {
+      if (response.credential) {
+        const user = await googleLogin(response.credential);
+        toast({
+          title: 'Welcome back!',
+          description: 'Logged in successfully with Google.',
+        });
+        navigate(user.role === 'admin' ? '/admin' : '/user');
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Google Login failed',
+        description: error.response?.data?.message || 'Authentication failed',
       });
     }
   };
@@ -124,6 +144,33 @@ const Login: React.FC = () => {
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>
               </form>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border/50" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-transparent px-2 text-muted-foreground font-medium">Or continue with</span>
+                </div>
+              </div>
+
+              <div className="flex justify-center w-full">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Google Login failed',
+                      description: 'Something went wrong',
+                    });
+                  }}
+                  useOneTap
+                  theme="filled_blue"
+                  shape="pill"
+                  width="100%"
+                />
+              </div>
+
               <div className="mt-8 text-center text-sm text-muted-foreground">
                 Don't have an account?{' '}
                 <Link to="/signup" className="text-primary font-bold hover:underline">
