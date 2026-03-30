@@ -97,6 +97,7 @@ router.get('/notifications', protect, async (req, res) => {
       .limit(20);
     res.json(notifications);
   } catch (error) {
+    console.error('Error fetching notifications:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -172,6 +173,7 @@ router.post('/google', async (req, res) => {
       token: generateToken(user._id)
     });
   } catch (error) {
+    console.error('Google Auth Error:', error);
     res.status(401).json({ message: 'Invalid Google token' });
   }
 });

@@ -13,6 +13,7 @@ const app = express();
 
 app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginEmbedderPolicy: false,
 }));
 const allowedOrigins = [
   process.env.FRONTEND_URL,

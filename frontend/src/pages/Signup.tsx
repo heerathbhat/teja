@@ -214,7 +214,6 @@ const Signup: React.FC = () => {
                       description: 'Something went wrong',
                     });
                   }}
-                  useOneTap
                   theme="filled_blue"
                   shape="pill"
                   width="380"
