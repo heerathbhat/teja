@@ -176,6 +176,12 @@ const Login: React.FC = () => {
                   Sign up
                 </Link>
               </div>
+
+              <div className="mt-8 pt-6 border-t border-border/20 text-center opacity-50">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-muted-foreground">
+                  Powered by <span className="text-[#064e3b] font-bold">Solvimate</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

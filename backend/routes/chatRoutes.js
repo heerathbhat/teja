@@ -127,6 +127,7 @@ router.post('/message', protect, async (req, res) => {
 
     res.json({ userMessage, aiMessage });
   } catch (error) {
+    console.error('Chat message error:', error);
     const latency = Date.now() - startTime;
     await Metric.create({
       user: req.user._id,
@@ -234,6 +235,44 @@ router.post('/transcribe', protect, async (req, res) => {
       status: 'error',
       errorMessage: error.message
     });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Delete a chat
+// @route   DELETE /api/chat/:chatId
+// @access  Private
+router.delete('/:chatId', protect, async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ _id: req.params.chatId, users: req.user._id });
+    
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    await Chat.deleteOne({ _id: req.params.chatId });
+    await Message.deleteMany({ chat: req.params.chatId });
+    
+    res.json({ message: 'Chat removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Rename a chat
+// @route   PATCH /api/chat/:chatId
+// @access  Private
+router.patch('/:chatId', protect, async (req, res) => {
+  const { title } = req.body;
+  try {
+    const chat = await Chat.findOneAndUpdate(
+      { _id: req.params.chatId, users: req.user._id },
+      { title },
+      { new: true }
+    );
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+    res.json(chat);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });

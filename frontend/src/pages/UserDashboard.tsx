@@ -22,7 +22,8 @@ import {
   MoreVertical,
   X,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ParticleField from '@/components/ParticleField';
@@ -35,6 +36,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Attachment {
   fileUrl: string;
@@ -67,6 +85,10 @@ const UserDashboard: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,17 +125,88 @@ const UserDashboard: React.FC = () => {
     },
   });
 
+  // Delete Chat Mutation
+  const deleteChatMutation = useMutation({
+    mutationFn: async (chatId: string) => {
+      await api.delete(`/chat/${chatId}`);
+    },
+    onSuccess: (_, deletedChatId) => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (activeChatId === deletedChatId) {
+        setActiveChatId(null);
+      }
+      setIsDeleteOpen(false);
+      toast({ title: 'Chat deleted' });
+    },
+    onError: () => {
+      toast({ variant: 'destructive', title: 'Failed to delete chat' });
+    }
+  });
+
+  // Rename Chat Mutation
+  const renameChatMutation = useMutation({
+    mutationFn: async ({ chatId, title }: { chatId: string, title: string }) => {
+      await api.patch(`/chat/${chatId}`, { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      setIsRenameOpen(false);
+      toast({ title: 'Chat renamed' });
+    },
+  });
+
   // Send Message Mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (payload: { chatId: string, content: string, attachments: Attachment[] }) => {
       const { data } = await api.post('/chat/message', payload);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', activeChatId] });
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    onMutate: async (payload) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['messages', activeChatId] });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<Message[]>(['messages', activeChatId]);
+
+      // Optimistically update to the new value
+      if (previousMessages) {
+        queryClient.setQueryData<Message[]>(['messages', activeChatId], [
+          ...previousMessages,
+          {
+            _id: `temp-${Date.now()}`,
+            chat: activeChatId!,
+            sender: user?._id || '',
+            content: payload.content,
+            role: 'user',
+            attachments: payload.attachments,
+            createdAt: new Date().toISOString(),
+          }
+        ]);
+      }
+
+      // Clear input immediately for a responsive feel
       setInputText('');
       setPendingAttachments([]);
+
+      return { previousMessages };
+    },
+    onError: (err, payload, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousMessages) {
+        queryClient.setQueryData(['messages', activeChatId], context.previousMessages);
+      }
+      // Restore input text so the user doesn't lose it
+      setInputText(payload.content);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Communication lost',
+        description: 'Failed to sync with AI Node. Your message was restored.'
+      });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to sync with the server's final data
+      queryClient.invalidateQueries({ queryKey: ['messages', activeChatId] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
     },
   });
 
@@ -230,7 +323,44 @@ const UserDashboard: React.FC = () => {
                     {chat.lastMessage || 'No messages yet'}
                   </p>
                 </div>
-                <ChevronRight size={14} className={`mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${activeChatId === chat._id ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="flex flex-col items-center gap-1">
+                  <ChevronRight size={14} className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeChatId === chat._id ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical size={14} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="glass border-white/10">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChat(chat);
+                          setEditTitle(chat.title);
+                          setIsRenameOpen(true);
+                        }}
+                        className="focus:bg-primary/20 gap-2"
+                      >
+                        <FileText size={14} /> Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChat(chat);
+                          setIsDeleteOpen(true);
+                        }}
+                        className="focus:bg-destructive/10 text-destructive gap-2"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -267,10 +397,6 @@ const UserDashboard: React.FC = () => {
                 <h2 className="text-lg font-bold">
                   {chats.find((c: Chat) => c._id === activeChatId)?.title || 'Current Session'}
                 </h2>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">AI Node: Gemini-1.5-Flash</span>
-                </div>
               </motion.div>
             )}
           </div>
@@ -286,15 +412,27 @@ const UserDashboard: React.FC = () => {
         {/* Messages */}
         <ScrollArea className="flex-1 p-8">
           {!activeChatId ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-50">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
-                <MessageSquare size={40} />
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in zoom-in duration-500">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-150" />
+                <div className="w-32 h-32 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-primary shadow-2xl relative z-10">
+                  <MessageSquare size={64} className="drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black">Teja: Your Intelligent Workspace</h3>
-                <p className="max-w-md text-muted-foreground">Select a conversation or start a new one to begin interacting with our advanced models.</p>
+              <div className="space-y-4 relative z-10">
+                <h3 className="text-4xl font-black tracking-tight">
+                  Teja: Your <span className="gradient-text">Intelligent</span> Workspace
+                </h3>
+                <p className="max-w-md mx-auto text-muted-foreground text-lg leading-relaxed font-medium">
+                  Experience high-performance AI inference. Select a conversation or start a new one to begin.
+                </p>
               </div>
-              <Button onClick={() => createChatMutation.mutate(undefined)} variant="hero">
+              <Button 
+                onClick={() => createChatMutation.mutate(undefined)} 
+                variant="hero" 
+                size="lg"
+                className="px-10 py-8 text-xl rounded-2xl shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:shadow-[0_20px_50px_rgba(var(--primary),0.4)] transition-all relative z-10"
+              >
                 Start your first chat
               </Button>
             </div>
@@ -477,6 +615,75 @@ const UserDashboard: React.FC = () => {
           </footer>
         )}
       </main>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+        <DialogContent className="glass border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Rename <span className="gradient-text">Chat</span></DialogTitle>
+          </DialogHeader>
+          <div className="py-6">
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Enter new chat title..."
+              className="bg-white/5 border-white/10 py-6 text-lg focus-visible:ring-primary h-14"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && editTitle.trim()) {
+                  renameChatMutation.mutate({ chatId: selectedChat?._id || '', title: editTitle });
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="sm:justify-between gap-4">
+            <Button variant="ghost" className="flex-1 py-6 h-14" onClick={() => setIsRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="flex-1 bg-primary text-white py-6 h-14 font-black"
+              disabled={!editTitle.trim() || renameChatMutation.isPending}
+              onClick={() => {
+                if (editTitle.trim() && selectedChat) {
+                  renameChatMutation.mutate({ chatId: selectedChat._id, title: editTitle });
+                }
+              }}
+            >
+              {renameChatMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black text-destructive">Wait a <span className="text-foreground">minute!</span></AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-lg pt-4 leading-relaxed font-medium">
+              Are you absoluteley sure? This will permanently delete your conversation with <span className="text-foreground font-black">"{selectedChat?.title}"</span> and all its message history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-8 flex sm:flex-row flex-col gap-4">
+            <AlertDialogCancel asChild>
+              <Button variant="ghost" className="flex-1 py-6 h-14">
+                Keep Chat
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button 
+                variant="destructive" 
+                className="flex-1 py-6 h-14 font-black shadow-lg shadow-destructive/20"
+                onClick={() => {
+                  if (selectedChat) deleteChatMutation.mutate(selectedChat._id);
+                }}
+                disabled={deleteChatMutation.isPending}
+              >
+                {deleteChatMutation.isPending ? 'Deleting...' : 'Yes, Delete it'}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
